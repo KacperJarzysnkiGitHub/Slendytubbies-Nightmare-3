@@ -392,11 +392,11 @@ const App: React.FC = () => {
                        <div className="flex items-center gap-2"><MusicIcon className="w-4 h-4" /> Music Volume</div>
                        <span>{Math.round(settings.musicVolume * 100)}%</span>
                     </div>
-                    {/* Fix: Cast e.target to HTMLInputElement to access 'value' property */}
+                    {/* Fix: Access .value via 'any' cast to bypass 'Property value does not exist' in restrictive type environments */}
                     <input 
                        type="range" min="0" max="1" step="0.01" 
                        value={settings.musicVolume}
-                       onChange={(e) => setSettings(s => ({ ...s, musicVolume: parseFloat((e.target as HTMLInputElement).value) }))}
+                       onChange={(e) => setSettings(s => ({ ...s, musicVolume: parseFloat((e.target as any).value) }))}
                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                     />
                  </div>
@@ -406,11 +406,11 @@ const App: React.FC = () => {
                        <div className="flex items-center gap-2"><Volume2 className="w-4 h-4" /> Sound Volume</div>
                        <span>{Math.round(settings.soundVolume * 100)}%</span>
                     </div>
-                    {/* Fix: Cast e.target to HTMLInputElement to access 'value' property */}
+                    {/* Fix: Access .value via 'any' cast to bypass 'Property value does not exist' in restrictive type environments */}
                     <input 
                        type="range" min="0" max="1" step="0.01" 
                        value={settings.soundVolume}
-                       onChange={(e) => setSettings(s => ({ ...s, soundVolume: parseFloat((e.target as HTMLInputElement).value) }))}
+                       onChange={(e) => setSettings(s => ({ ...s, soundVolume: parseFloat((e.target as any).value) }))}
                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                     />
                  </div>
@@ -445,6 +445,16 @@ const App: React.FC = () => {
       {gameState.isStarted && !gameState.isGameOver && !gameState.isGameWon && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white/40 rounded-full" />
       )}
+
+      {/* Game Version Display */}
+      <div className="absolute bottom-4 right-6 pointer-events-none z-50 flex flex-col items-end opacity-20 hover:opacity-100 transition-opacity">
+        <span className="text-white text-[10px] font-mono tracking-[0.2em] uppercase font-bold">
+          Tubby Terrors // Build.2025.04
+        </span>
+        <span className="text-purple-500 text-[9px] font-mono tracking-[0.4em] uppercase mt-1">
+          Ver 0.4.12-ALPHA
+        </span>
+      </div>
     </div>
   );
 };
