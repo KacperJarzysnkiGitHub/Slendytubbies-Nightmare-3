@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -7,7 +8,7 @@ import Environment from './components/Environment';
 import Custard from './components/Custard';
 import { GameState, CustardData, GameSettings } from './types';
 import { getScaryMessage, getInitialLore } from './services/geminiService';
-import { Ghost, Skull, Trophy, Play, MousePointer2, Move, AlertTriangle, Settings, X, Volume2, Music as MusicIcon } from 'lucide-react';
+import { Ghost, Skull, Trophy, Play, MousePointer2, Move, AlertTriangle, Settings, X, Volume2, Music as MusicIcon, Keyboard, Home, LogOut } from 'lucide-react';
 
 const MAX_CUSTARDS = 10;
 
@@ -84,6 +85,7 @@ const App: React.FC = () => {
   const [custards, setCustards] = useState<CustardData[]>([]);
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(0, 1.7, 0));
   const [lore, setLore] = useState("Loading nightmare...");
+  const [isEPressed, setIsEPressed] = useState(false);
   
   const audioCtx = useRef<any>(null);
   const musicGain = useRef<any>(null);
@@ -92,6 +94,47 @@ const App: React.FC = () => {
   useEffect(() => {
     getInitialLore().then(setLore);
   }, []);
+
+  const returnToMenu = useCallback(() => {
+    setGameState({
+      custardsCollected: 0,
+      maxCustards: MAX_CUSTARDS,
+      isGameOver: false,
+      isGameWon: false,
+      isStarted: false,
+      horrorMessage: "",
+      isFrightened: false,
+      isJumpscare: false
+    });
+    setShowSettings(false);
+  }, []);
+
+  // Global Key Listener for Interaction and Menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const code = (e as any).code;
+      if (code === 'Escape' && gameState.isStarted && !gameState.isGameOver && !gameState.isGameWon && !gameState.isJumpscare) {
+        returnToMenu();
+      }
+      if (code === 'KeyE') {
+        setIsEPressed(true);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const code = (e as any).code;
+      if (code === 'KeyE') {
+        setIsEPressed(false);
+      }
+    };
+
+    (window as any).addEventListener('keydown', handleKeyDown);
+    (window as any).addEventListener('keyup', handleKeyUp);
+    return () => {
+      (window as any).removeEventListener('keydown', handleKeyDown);
+      (window as any).removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gameState.isStarted, gameState.isGameOver, gameState.isGameWon, gameState.isJumpscare, returnToMenu]);
 
   // Update Music Volume
   useEffect(() => {
@@ -259,16 +302,7 @@ const App: React.FC = () => {
     setGameState(prev => ({ ...prev, isGameOver: true, isJumpscare: true }));
     playScream();
     setTimeout(() => {
-      setGameState({
-        custardsCollected: 0,
-        maxCustards: MAX_CUSTARDS,
-        isGameOver: false,
-        isGameWon: false,
-        isStarted: false,
-        horrorMessage: "",
-        isFrightened: false,
-        isJumpscare: false
-      });
+      returnToMenu();
     }, 2500);
   };
 
@@ -297,6 +331,7 @@ const App: React.FC = () => {
               collected={c.collected} 
               onCollect={() => collectCustard(c.id)}
               playerPosition={playerPosition}
+              isInteracting={isEPressed}
             />
           ))}
         </Canvas>
@@ -321,15 +356,17 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="flex flex-col items-end gap-2 pointer-events-auto">
+          <div className="flex flex-col items-end gap-2 pointer-events-auto text-right">
              <button 
                 onClick={() => setShowSettings(true)}
-                className="p-3 bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10"
+                className="p-3 bg-white/5 hover:bg-white/10 text-white rounded-full transition-all border border-white/10 mb-2"
              >
                 <Settings className="w-6 h-6" />
              </button>
-             <div className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-bold">
-               Shift to Sprint • WASD to Move
+             <div className="text-white/40 text-[10px] uppercase tracking-[0.2em] font-bold space-y-1">
+               <div>Shift to Sprint • WASD to Move</div>
+               <div className="text-pink-400 font-black">E to Collect Custard</div>
+               <div className="text-purple-400/60 font-black">ESC to return Main Menu</div>
              </div>
           </div>
         </div>
@@ -365,7 +402,7 @@ const App: React.FC = () => {
           
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 text-white font-bold text-xs tracking-widest uppercase">
             <div className="flex flex-col items-center gap-2"><Move className="w-6 h-6" /> WASD</div>
-            <div className="flex flex-col items-center gap-2"><MousePointer2 className="w-6 h-6" /> LOOK</div>
+            <div className="flex flex-col items-center gap-2"><Keyboard className="w-6 h-6" /> E - COLLECT</div>
             <div className="flex flex-col items-center gap-2"><div className="w-6 h-6 border-2 border-white flex items-center justify-center text-[8px]">SHIFT</div> SPRINT</div>
             <div className="flex flex-col items-center gap-2"><AlertTriangle className="w-6 h-6" /> SURVIVE</div>
           </div>
@@ -392,7 +429,6 @@ const App: React.FC = () => {
                        <div className="flex items-center gap-2"><MusicIcon className="w-4 h-4" /> Music Volume</div>
                        <span>{Math.round(settings.musicVolume * 100)}%</span>
                     </div>
-                    {/* Fix: Access .value via 'any' cast to bypass 'Property value does not exist' in restrictive type environments */}
                     <input 
                        type="range" min="0" max="1" step="0.01" 
                        value={settings.musicVolume}
@@ -406,7 +442,6 @@ const App: React.FC = () => {
                        <div className="flex items-center gap-2"><Volume2 className="w-4 h-4" /> Sound Volume</div>
                        <span>{Math.round(settings.soundVolume * 100)}%</span>
                     </div>
-                    {/* Fix: Access .value via 'any' cast to bypass 'Property value does not exist' in restrictive type environments */}
                     <input 
                        type="range" min="0" max="1" step="0.01" 
                        value={settings.soundVolume}
@@ -416,28 +451,44 @@ const App: React.FC = () => {
                  </div>
               </div>
 
-              <button 
-                 onClick={() => setShowSettings(false)}
-                 className="w-full mt-12 py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:bg-purple-500 hover:text-white transition-all active:scale-95"
-              >
-                 Return to Game
-              </button>
+              <div className="flex flex-col gap-3 mt-12">
+                <button 
+                   onClick={() => setShowSettings(false)}
+                   className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-xl hover:bg-zinc-200 transition-all active:scale-95"
+                >
+                   Return to Game
+                </button>
+                <button 
+                   onClick={returnToMenu}
+                   className="w-full py-4 bg-zinc-800 text-red-500 border border-red-500/30 font-black uppercase tracking-widest rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                   <LogOut className="w-4 h-4" /> Quit to Menu
+                </button>
+              </div>
            </div>
         </div>
       )}
 
       {/* Victory Screen */}
       {gameState.isGameWon && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-50">
-          <Trophy className="w-24 h-24 text-yellow-500 mb-6" />
-          <h2 className="text-6xl font-black text-white mb-2 uppercase tracking-tighter">SURVIVED</h2>
-          <p className="text-zinc-400 mb-10 text-xl">You collected all the custards. The nightmare ends... for now.</p>
-          <button 
-            onClick={startGame}
-            className="px-10 py-4 bg-purple-600 text-white font-bold rounded-lg transition-all"
-          >
-            PLAY AGAIN
-          </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950 z-50 p-4 text-center">
+          <Trophy className="w-24 h-24 text-yellow-500 mb-6 drop-shadow-[0_0_30px_rgba(234,179,8,0.3)] animate-bounce" />
+          <h2 className="text-6xl md:text-8xl font-black text-white mb-2 uppercase tracking-tighter italic">SURVIVED</h2>
+          <p className="text-zinc-400 mb-10 text-xl max-w-lg">You collected all the custards. The nightmare ends... for now.</p>
+          <div className="flex flex-col md:flex-row gap-4 w-full max-w-md">
+            <button 
+              onClick={startGame}
+              className="flex-1 px-10 py-5 bg-purple-600 text-white font-black uppercase tracking-widest rounded-full transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 shadow-lg shadow-purple-500/20"
+            >
+              <Play className="fill-current" /> Play Again
+            </button>
+            <button 
+              onClick={returnToMenu}
+              className="flex-1 px-10 py-5 bg-zinc-800 text-white font-black uppercase tracking-widest rounded-full transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 border border-white/10"
+            >
+              <Home className="w-5 h-5" /> Main Menu
+            </button>
+          </div>
         </div>
       )}
 
@@ -452,7 +503,7 @@ const App: React.FC = () => {
           Tubby Terrors // Build.2025.04
         </span>
         <span className="text-purple-500 text-[9px] font-mono tracking-[0.4em] uppercase mt-1">
-          Ver 0.4.12-ALPHA
+          Ver 0.4.15-ALPHA
         </span>
       </div>
     </div>
